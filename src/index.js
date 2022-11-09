@@ -19,7 +19,14 @@ mongoClient.connect().then(() => {
   messages = db.collection("messages");
 });
 
-app.post('/test', (req, res, next) => {
+setInterval(() => {
+  const interval = Date.now() - 10000;
+
+  participants
+  .deleteMany({lastStatus: {$lt: interval}});
+}, 15000)
+
+app.post('/participants', (req, res, next) => {
   const { name } = req.body;
   const date = dayjs().format('HH:mm:ss');
 
@@ -60,13 +67,89 @@ app.post('/test', (req, res, next) => {
     });
 });
 
-app.get('/test', (req, res) => {
+app.get('/participants', (req, res) => {
   participants
     .find()
     .toArray()
     .then((participants) => {
       res.send(participants);
     });
+})
+
+app.post('/messages', (req, res, next) => {
+  const { to, text, type } = req.body;
+  const user = req.headers.user;
+  const date = dayjs().format('HH:mm:ss');
+  let contador = 2;
+
+  const schema = Joi.object({
+    to: Joi.string()
+      .required(),
+    text: Joi.string()
+      .required(),
+    type: Joi.string().valid('message', 'private_message').required(),
+  });
+
+  const result = schema.validate(req.body);
+
+  participants
+    .findOne({ name: user })
+    .then(participant => {
+      if (result.error || !participant) {
+        return res.sendStatus(422);
+      } else {
+        messages.insertOne({
+          from: user,
+          to,
+          text: `mensagem ${contador}`,
+          type,
+          time: date
+        });
+        contador++
+        return res.sendStatus(201);
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      return res.sendStatus(500);
+    });
+});
+
+app.get('/messages', (req, res) => {
+  const limit = parseInt(req.query.limit);
+  const user = req.headers.user;
+  
+  if (!limit){
+    messages
+    .find({$or: [{from: user}, {to: "Todos"}, {to: user}]})
+    .toArray()
+    .then((messages) => {
+      return res.send(messages);
+    })
+  }
+
+  messages
+    .find({$or: [{from: user}, {to: "Todos"}, {to: user}]})
+    .sort({$natural:-1})
+    .limit(limit)
+    .toArray()
+    .then((messages) => {
+      return res.send(messages);
+    })
+})
+
+app.post('/status', (req, res, next) => {
+  const user = req.headers.user;
+  participants
+  .updateOne({ name: user},{$set :{lastStatus: Date.now()}})
+  .then((updated) => {
+    if(updated.modifiedCount === 1){
+      return res.sendStatus(200);
+    }
+
+    return res.sendStatus(404);
+  })
+  .catch(err => console.log(err));
 })
 
 app.listen(5000, console.log('Server running in port: 5000'));
