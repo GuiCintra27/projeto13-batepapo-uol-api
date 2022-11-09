@@ -2,9 +2,11 @@
   "name": "projeto13-batepapo-uol-api",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx node src/index.js",
+    "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -12,7 +14,11 @@
   "dependencies": {
     "axios": "^1.1.3",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "dayjs": "^1.11.6",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "joi": "^17.7.0",
+    "mongodb": "^4.11.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
