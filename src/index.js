@@ -43,7 +43,7 @@ setInterval(async () => {
           console.log(err);
           res.sendStatus(500);
         }
-      })
+      });
     }
   } catch (err) {
 
@@ -61,10 +61,11 @@ app.post('/participants', async (req, res, next) => {
       .required(),
   });
 
-  const result = schema.validate(req.body);
+  const { error } = schema.validate(req.body, {abortEarly: false});
 
-  if (result.error) {
-    return res.status(400).send('Preencha todos os campos!');
+  if (error) {
+    const erros = error.details.map((detail) => detail.message);
+    return res.status(422).send(erros);
   }
 
   try {
@@ -120,14 +121,17 @@ app.post('/messages', async (req, res, next) => {
     type: Joi.string().valid('message', 'private_message').required(),
   });
 
-  const result = schema.validate(req.body);
+  const { error } = schema.validate(req.body, {abortEarly: false});
 
   try {
     const isLogged = await participants.findOne({ name: user });
 
-    if (result.error || !isLogged) {
-      return res.sendStatus(422);
-    } else {
+    if (error) {
+        const erros = error.details.map((detail) => detail.message);
+        return res.status(422).send(erros);
+    } else if(!isLogged){
+      return res.status(422).send("Usuário não logado");
+    }else {
       messages.insertOne({
         from: user,
         to,
